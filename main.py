@@ -35,6 +35,13 @@ paredes = [
     ((-10, -1, 10), (10, -1, 10)),
 ]
 
+#Dimensões da câmera para fins de colisão
+camera_width = 0.5
+camera_height = 0.5
+camera_depth = 0.5
+
+#Contador para setar mouse inicialmente inativo
+MouseCount = 0;
 
 retangulos = [
 
@@ -47,6 +54,12 @@ retangulos = [
     {
         'posicao': [0, 0, -2],
         'largura': 4,
+        'altura': 2,
+        'profundidade': 1
+    },
+    {
+        'posicao': [0, 0, -8],
+        'largura': 2,
         'altura': 2,
         'profundidade': 1
     },
@@ -175,30 +188,86 @@ def capturar_movimento_mouse():
     ultima_posicao_mouse = posicao_mouse_atual
 
 # Posiciona o cursor do mouse no centro da tela
-pygame.mouse.set_pos(largura // 2, altura // 2)
+#pygame.mouse.set_pos(largura // 2, altura // 2)
 
 #Função para detectar colisão
 
 def colisao(pos):
-    if(pos[0] <=9.8 and pos[2] <=9.8 and pos[0] >=-9.8 and pos[2] >=-9.8):
+    if (pos[0] <= 9.8 and pos[2] <= 9.8 and pos[0] >= -9.8 and pos[2] >= -9.8):
         return True
     else:
         return False
 
 
+def colisao_obj(camera_position, camera_width, camera_height, camera_depth, rectangles):
+    if not colisao(camera_position):
+        return True
+
+    camera_x, camera_y, camera_z = camera_position
+    camera_left = camera_x - camera_width/2
+    camera_right = camera_x + camera_width/2
+    camera_top = camera_y - camera_height/2
+    camera_bottom = camera_y + camera_height/2
+    camera_front = camera_z - camera_depth/2
+    camera_back = camera_z + camera_depth/2
+
+    for rectangle in rectangles:
+        rect_x, rect_y, rect_z = rectangle['posicao']
+        rect_width = rectangle['largura']
+        rect_height = rectangle['altura']
+        rect_depth = rectangle['profundidade']
+
+        rect_left = rect_x - rect_width/2
+        rect_right = rect_x + rect_width/2
+        rect_top = rect_y - rect_height/2
+        rect_bottom = rect_y + rect_height/2
+        rect_front = rect_z - rect_depth/2
+        rect_back = rect_z + rect_depth/2
+
+        if (rect_left < camera_right and
+                rect_right > camera_left and
+                rect_top < camera_bottom and
+                rect_bottom > camera_top and
+                rect_front < camera_back and
+                rect_back > camera_front):
+            return True
+
+    return False
+
+
 # Loop principal do jogo
 while True:
+
+    #pygame.mouse.set_pos(largura // 2, altura // 2)
+
     # Calcula o FPS
     #fps = clock.get_fps()
 
     # Atualiza o título da janela com o FPS
-   # pygame.display.set_caption(f"The Room - FPS: {int(fps)}")
+    #pygame.display.set_caption(f"The Room - FPS: {int(fps)}")
 
     # Atualização do display
-   # pygame.display.flip()
+    #pygame.display.flip()
 
     # Limita a taxa de quadros (FPS) para 60
-   # clock.tick(75)
+   # clock.tick(60)
+
+
+    # for event in pygame.event.get():
+    #     if event.type == pygame.QUIT:
+    #         pygame.quit()
+    #         quit()
+    #     elif event.type == pygame.KEYDOWN:
+    #         if event.key == pygame.K_ESCAPE:
+    #             pygame.quit()
+    #             quit()
+    #     elif event.type == pygame.MOUSEBUTTONDOWN:
+    #         MouseCount = MouseCount + 1;
+    #         print(MouseCount)
+    #         if MouseCount%2!=0:
+    #             mouse_na_janela = True
+    #         else:
+    #             mouse_na_janela = False
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -220,7 +289,7 @@ while True:
 
     # Captura das teclas pressionadas para movimentação do personagem
     teclas = pygame.key.get_pressed()
-    velocidade = 0.1
+    velocidade = 0.07
     proxima_posicao = posicao.copy()
     if colisao(proxima_posicao):
         if teclas[pygame.K_w]:
@@ -235,19 +304,26 @@ while True:
         if teclas[pygame.K_d]:
             proxima_posicao[0] += velocidade * math.cos(rotacao[1] * math.pi / 180.0)
             proxima_posicao[2] += velocidade * math.sin(rotacao[1] * math.pi / 180.0)
-    else:
-        if proxima_posicao[0] > 9.8:
-            proxima_posicao[0] = 9.8
-        if proxima_posicao[2] > 9.8:
-            proxima_posicao[2] = 9.8
-        if proxima_posicao[0] < -9.8:
-            proxima_posicao[0] = -9.8
-        if proxima_posicao[2] < -9.8:
-            proxima_posicao[2] = -9.8
+
+
+            # Captura das teclas pressionadas para rotacionar a câmera
+    if teclas[pygame.K_LEFT]:
+        rotacao[1] -= 1  # Girar para a esquerda
+    if teclas[pygame.K_RIGHT]:
+        rotacao[1] += 1  # Girar para a direita
+    if teclas[pygame.K_UP]:
+        rotacao[0] -= 1  # Olhar para cima
+    if teclas[pygame.K_DOWN]:
+        rotacao[0] += 1  # Olhar para baixo
 
     # Atualização da posição da câmera
-    posicao = proxima_posicao
+
     #print(posicao)
+
+    if colisao_obj(proxima_posicao, camera_width, camera_height, camera_depth, retangulos):
+        print("Houve uma colisão!")
+    else:
+        posicao = proxima_posicao
 
     # Configuração do OpenGL
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -280,4 +356,4 @@ while True:
 
     # Atualização do display
     pygame.display.flip()
-    pygame.time.wait(3)
+    pygame.time.wait(1)
