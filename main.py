@@ -3,6 +3,7 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import math
+from PIL import Image
 import numpy
 
 # Inicialização do Pygame
@@ -10,6 +11,10 @@ pygame.init()
 
 #fps
 #clock = pygame.time.Clock()
+
+# Carregando a imagem binária em preto e branco
+imagem_binaria = Image.open('empty.png').convert('L')
+pixels = imagem_binaria.load()
 
 # Definição das dimensões da janela
 largura = 800
@@ -26,12 +31,19 @@ textura_teto = pygame.image.load('plank.jpg')
 # Configuração do display do Pygame com OpenGL
 pygame.display.set_mode((largura, altura), DOUBLEBUF | OPENGL)
 
+# # Habilitar o culling de faces
+# glEnable(GL_CULL_FACE)
+#
+# # Configurar o culling para descartar as faces voltadas para trás
+# glCullFace(GL_BACK)
+
 # Definição das propriedades da câmera
-posicao = [0, 1, 0]  # Posição inicial da câmera
+posicao = [-19, 1, -19]  # Posição inicial da câmera
 rotacao = [0, 0]  # Rotação inicial da câmera
 
 cont = 0
 flag = True
+tamanho_cena = 20
 
 # Variáveis para controle do mouse
 ultima_posicao_mouse = None
@@ -40,11 +52,11 @@ mouse_na_janela = False
 # Lista de coordenadas das paredes
 paredes = [
     # Paredes laterais
-    ((-20, -1, -20), (-20, -1, 20)),
-    ((20, -1, -20), (20, -1, 20)),
+    ((-1*tamanho_cena, -1, -1*tamanho_cena), (-1*tamanho_cena, -1, 1*tamanho_cena)),
+    ((1*tamanho_cena, -1, -1*tamanho_cena), (1*tamanho_cena, -1, 1*tamanho_cena)),
     # Paredes frontal e traseira
-    ((-20, -1, -20), (20, -1, -20)),
-    ((-20, -1, 20), (20, -1, 20)),
+    ((-1*tamanho_cena, -1, -1*tamanho_cena), (1*tamanho_cena, -1, -1*tamanho_cena)),
+    ((-1*tamanho_cena, -1, 1*tamanho_cena), (1*tamanho_cena, -1, 1*tamanho_cena)),
 ]
 
 #Dimensões da câmera para fins de colisão
@@ -55,70 +67,33 @@ camera_depth = 0.5
 #Contador para setar mouse inicialmente inativo
 MouseCount = 0;
 
+
+novos_retangulos = []
+
+# Definindo as dimensões do retângulo a ser adicionado (seu tamanho fixo)
+largura_retangulo = 1
+altura_retangulo = 4
+profundidade_retangulo = 1
+
+# Percorrendo a imagem e encontrando os pixels pretos
+for x in range(imagem_binaria.width):
+    for z in range(imagem_binaria.height):
+        # Se o pixel é preto (valor 0), adicionamos o retângulo na posição correspondente
+        if pixels[x, z] == 0:
+            novo_retangulo = {
+                'posicao': [x-tamanho_cena, 1, z-tamanho_cena],
+                'largura': largura_retangulo,
+                'altura': altura_retangulo,
+                'profundidade': profundidade_retangulo
+            }
+            novos_retangulos.append(novo_retangulo)
+
+
 retangulos = [
-    {
-        'posicao': [-16, 1, -14],
-        'largura': 4,
-        'altura': 4,
-        'profundidade': 4
-    },
-    {
-        'posicao': [-12, 1, -14],
-        'largura': 4,
-        'altura': 4,
-        'profundidade': 4
-    },
-    {
-        'posicao': [-8, 1, -14],
-        'largura': 4,
-        'altura': 4,
-        'profundidade': 4
-    },
-    {
-        'posicao': [-4, 1, -14],
-        'largura': 4,
-        'altura': 4,
-        'profundidade': 4
-    },
-    {
-        'posicao': [0, 1, -14],
-        'largura': 4,
-        'altura': 4,
-        'profundidade': 4
-    },
-    {
-        'posicao': [4, 1, -14],
-        'largura': 4,
-        'altura': 4,
-        'profundidade': 4
-    },
-    {
-        'posicao': [8, 1, -14],
-        'largura': 4,
-        'altura': 4,
-        'profundidade': 4
-    },
-    {
-        'posicao': [12, 1, -14],
-        'largura': 4,
-        'altura': 4,
-        'profundidade': 4
-    },
-    {
-        'posicao': [0, 0, -2],
-        'largura': 4,
-        'altura': 2,
-        'profundidade': 1
-    },
-    {
-        'posicao': [0, 0, -8],
-        'largura': 2,
-        'altura': 2,
-        'profundidade': 1
-    }
+
     # Adicione mais retângulos conforme necessário
 ]
-
+retangulos.extend(novos_retangulos)
 
 def desenhar_retangulo_3d(posicao, largura, altura, profundidade):
     vertices = [
@@ -197,37 +172,7 @@ def desenhar_paredes():
 
 
 
-def desenhar_linhas_parede():
-    # Desenhar linhas verticais nos cantos do quarto
-    glLineWidth(2)  # Define a largura das linhas
-    glColor3f(0, 0, 0)  # Define a cor das linhas para preto
-
-    # Canto superior esquerdo
-    glBegin(GL_LINES)
-    glVertex3f(-20, -1, -20)
-    glVertex3f(-20, 5, -20)
-    glEnd()
-
-    # Canto superior direito
-    glBegin(GL_LINES)
-    glVertex3f(20, -1, -20)
-    glVertex3f(20, 5, -20)
-    glEnd()
-
-    # Canto inferior esquerdo
-    glBegin(GL_LINES)
-    glVertex3f(-20, -1, 20)
-    glVertex3f(-20, 5, 20)
-    glEnd()
-
-    # Canto inferior direito
-    glBegin(GL_LINES)
-    glVertex3f(20, -1, 20)
-    glVertex3f(20, 5, 20)
-    glEnd()
-
-
-def desenhar_plano(z, texture, repeat):
+def desenhar_plano(z, texture, repeat,size):
     glEnable(GL_TEXTURE_2D)
     glBindTexture(GL_TEXTURE_2D, texture)
 
@@ -240,13 +185,13 @@ def desenhar_plano(z, texture, repeat):
 
     # Coordenadas de textura normalizadas
     glTexCoord2f(0, 0)
-    glVertex3f(-20, z, -20)
+    glVertex3f(-1*size, z, -1*size)
     glTexCoord2f(repeat, 0)  # Aumente o valor do primeiro argumento para repetir a textura mais vezes na direção X
-    glVertex3f(20, z, -20)
+    glVertex3f(1*size, z, -1*size)
     glTexCoord2f(repeat, repeat)  # Aumente o valor de ambos os argumentos para repetir a textura mais vezes em ambas as direções
-    glVertex3f(20, z, 20)
+    glVertex3f(1*size, z, 1*size)
     glTexCoord2f(0, repeat)  # Aumente o valor do segundo argumento para repetir a textura mais vezes na direção Y
-    glVertex3f(-20, z, 20)
+    glVertex3f(-1*size, z, 1*size)
 
     glEnd()
 
@@ -503,9 +448,8 @@ while True:
 
     # Desenho do ambiente
     desenhar_paredes()
-    desenhar_plano(-1,textura_id,16) #Chao
-    desenhar_plano(6,textura_id,16) #teto
-    desenhar_linhas_parede()
+    desenhar_plano(-1,textura_id,16, tamanho_cena) #Chao
+    desenhar_plano(6,textura_id,16, tamanho_cena) #teto
 
     # Desativa a textura após desenhar o chão
     glDisable(GL_TEXTURE_2D)
