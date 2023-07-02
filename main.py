@@ -11,7 +11,7 @@ class Game:
         pygame.init()
         self.largura = 800
         self.altura = 600
-        
+
         self.posicao = [-19, 1, -19]  # Posição inicial da câmera
         self.rotacao = [0, 0]  # Rotação inicial da câmera
 
@@ -40,14 +40,14 @@ class Game:
         self.altura_retangulo = 4
         self.profundidade_retangulo = 1
 
-        self.paredes =\
+        self.paredes = \
             [
                 # Paredes laterais
-            ((-1*self.tamanho_cena, -1, -1*self.tamanho_cena), (-1*self.tamanho_cena, -1, 1*self.tamanho_cena)),
-            ((1*self.tamanho_cena, -1, -1*self.tamanho_cena), (1*self.tamanho_cena, -1, 1*self.tamanho_cena)),
+                ((-1*self.tamanho_cena, -1, -1*self.tamanho_cena), (-1*self.tamanho_cena, -1, 1*self.tamanho_cena)),
+                ((1*self.tamanho_cena, -1, -1*self.tamanho_cena), (1*self.tamanho_cena, -1, 1*self.tamanho_cena)),
                 # Paredes frontal e traseira
-            ((-1*self.tamanho_cena, -1, -1*self.tamanho_cena), (1*self.tamanho_cena, -1, -1*self.tamanho_cena)),
-            ((-1*self.tamanho_cena, -1, 1*self.tamanho_cena), (1*self.tamanho_cena, -1, 1*self.tamanho_cena)),
+                ((-1*self.tamanho_cena, -1, -1*self.tamanho_cena), (1*self.tamanho_cena, -1, -1*self.tamanho_cena)),
+                ((-1*self.tamanho_cena, -1, 1*self.tamanho_cena), (1*self.tamanho_cena, -1, 1*self.tamanho_cena)),
 
             ]
 
@@ -56,7 +56,7 @@ class Game:
         self.load_textures()
         self.desenhar_paredes()
 
-        
+
     def desenhar_paredes(self):
         glEnable(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, self.textura_id_parede)
@@ -101,6 +101,49 @@ class Game:
 
         glEnd()
 
+    def desenhar_retangulo_3d(self,posicao, largura, altura, profundidade):
+        vertices = [
+            (posicao[0] - largura/2, posicao[1] - altura/2, posicao[2] - profundidade/2),
+            (posicao[0] - largura/2, posicao[1] + altura/2, posicao[2] - profundidade/2),
+            (posicao[0] + largura/2, posicao[1] + altura/2, posicao[2] - profundidade/2),
+            (posicao[0] + largura/2, posicao[1] - altura/2, posicao[2] - profundidade/2),
+            (posicao[0] - largura/2, posicao[1] - altura/2, posicao[2] + profundidade/2),
+            (posicao[0] - largura/2, posicao[1] + altura/2, posicao[2] + profundidade/2),
+            (posicao[0] + largura/2, posicao[1] + altura/2, posicao[2] + profundidade/2),
+            (posicao[0] + largura/2, posicao[1] - altura/2, posicao[2] + profundidade/2)
+        ]
+
+        faces = [
+            (0, 1, 2, 3),
+            (4, 5, 6, 7),
+            (0, 1, 5, 4),
+            (2, 3, 7, 6),
+            (0, 3, 7, 4),
+            (1, 2, 6, 5)
+        ]
+
+        # Habilitar a aplicação de texturas
+        glEnable(GL_TEXTURE_2D)
+        glEnable(GL_DEPTH_TEST)
+
+        # Desabilitar o descarte de faces
+        glDisable(GL_CULL_FACE)
+        glBindTexture(GL_TEXTURE_2D, self.textura_id_obj)
+
+        glBegin(GL_QUADS)
+        glColor3f(1.0, 1.0, 1.0)
+        for i, face in enumerate(faces):
+            glTexCoord2f(0, 0)
+            glVertex3fv(vertices[face[0]])
+            glTexCoord2f(1, 0)
+            glVertex3fv(vertices[face[1]])
+            glTexCoord2f(1, 1)
+            glVertex3fv(vertices[face[2]])
+            glTexCoord2f(0, 1)
+            glVertex3fv(vertices[face[3]])
+        glEnd()
+
+
     def load_textures(self):
         # Carregue suas texturas aqui
         self.imagem_binaria = Image.open('empty.png').convert('L')
@@ -133,11 +176,11 @@ class Game:
         glBindTexture(GL_TEXTURE_2D, self.textura_id_teto)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.textura_teto.get_width(), self.textura_teto.get_height(), 0, GL_RGB,GL_UNSIGNED_BYTE, pygame.image.tostring(self.textura_teto, "RGB", 1))   
-        
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.textura_teto.get_width(), self.textura_teto.get_height(), 0, GL_RGB,GL_UNSIGNED_BYTE, pygame.image.tostring(self.textura_teto, "RGB", 1))
+
         for x in range(self.imagem_binaria.width):
             for z in range(self.imagem_binaria.height):
-        # Se o pixel é preto (valor 0), adicionamos o retângulo na posição correspondente
+                # Se o pixel é preto (valor 0), adicionamos o retângulo na posição correspondente
                 if pixels[x, z] == 0:
                     novo_retangulo = {
                         'posicao': [x-self.tamanho_cena, 1, z-self.tamanho_cena],
@@ -152,28 +195,27 @@ class Game:
         self.retangulos.extend(self.novos_retangulos)
 
     def capturar_movimento_mouse(self):
-        
-
         posicao_mouse_atual = pygame.mouse.get_pos()
 
-        if self.ultima_posicao_mouse is not None:
-            if self.mouse_na_janela:
-                delta_mouse = (
-                    posicao_mouse_atual[0] - self.ultima_posicao_mouse[0],
-                    posicao_mouse_atual[1] - self.ultima_posicao_mouse[1]
-                )
+        if self.ultima_posicao_mouse is not None and self.mouse_na_janela:
+            delta_mouse = (
+                posicao_mouse_atual[0] - self.ultima_posicao_mouse[0],
+                posicao_mouse_atual[1] - self.ultima_posicao_mouse[1]
+            )
 
-                sensibilidade_mouse = 0.1
-                self.rotacao[0] -= delta_mouse[1] * sensibilidade_mouse
-                self.rotacao[1] -= delta_mouse[0] * sensibilidade_mouse
+            sensibilidade_mouse = 0.1
+            self.rotacao[0] -= delta_mouse[1] * sensibilidade_mouse
+            self.rotacao[1] -= delta_mouse[0] * sensibilidade_mouse
 
-                if self.rotacao[0] > 90:
-                    self.rotacao[0] = 90
-                elif self.rotacao[0] < -90:
-                    self.rotacao[0] = -90
+            if self.rotacao[0] > 90:
+                self.rotacao[0] = 90
+            elif self.rotacao[0] < -90:
+                self.rotacao[0] = -90
+    
+        self.ultima_posicao_mouse = posicao_mouse_atual
 
     def colisao(self,pos):
-        if (pos[0] <= 19.8 and pos[2] <= 19.8 and pos[0] >= -19.8 and pos[2] >= -19.8):
+        if (pos[0] <= self.tamanho_cena - 0.2 and pos[2] <= self.tamanho_cena - 0.2 and pos[0] >= -self.tamanho_cena + 0.2 and pos[2] >= -self.tamanho_cena + 0.2):
             return True
         else:
             return False
@@ -189,20 +231,20 @@ class Game:
         camera_bottom = camera_y + camera_height/2
         camera_front = camera_z - camera_depth/2
         camera_back = camera_z + camera_depth/2
-    
+
         for rectangle in rectangles:
             rect_x, rect_y, rect_z = rectangle['posicao']
             rect_width = rectangle['largura']
             rect_height = rectangle['altura']
             rect_depth = rectangle['profundidade']
-    
+
             rect_left = rect_x - rect_width/2
             rect_right = rect_x + rect_width/2
             rect_top = rect_y - rect_height/2
             rect_bottom = rect_y + rect_height/2
             rect_front = rect_z - rect_depth/2
             rect_back = rect_z + rect_depth/2
-    
+
             if (rect_left < camera_right and
                     rect_right > camera_left and
                     rect_top < camera_bottom and
@@ -210,9 +252,9 @@ class Game:
                     rect_front < camera_back and
                     rect_back > camera_front):
                 return True
-    
+
         return False
-    
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -224,14 +266,14 @@ class Game:
                     quit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    mouse_na_janela = True
+                    self.mouse_na_janela = True
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
-                    mouse_na_janela = False
-        
+                    self.mouse_na_janela = False
+
         self.capturar_movimento_mouse()
 
-    # Captura das teclas pressionadas para movimentação do personagem
+        # Captura das teclas pressionadas para movimentação do personagem
         teclas = pygame.key.get_pressed()
         velocidade = 0.05 #0.07
         proxima_posicao = self.posicao.copy()
@@ -291,16 +333,14 @@ class Game:
         else:
             self.posicao = proxima_posicao
 
-    
+
 
     def update(self):
         glLoadIdentity()
         glRotatef(self.rotacao[0], 1, 0, 0)
         glRotatef(self.rotacao[1], 0, 1, 0)
         glTranslatef(-self.posicao[0], -self.posicao[1], -self.posicao[2])
-        
 
-    
 
     def render(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -314,6 +354,9 @@ class Game:
         self.desenhar_paredes()
         self.desenhar_plano(-1, self.textura_id, 16, self.tamanho_cena) #Chao
         self.desenhar_plano(6,  self.textura_id, 16, self.tamanho_cena) #teto
+
+        for retangulo in self.retangulos:
+         self.desenhar_retangulo_3d(retangulo['posicao'], retangulo['largura'], retangulo['altura'], retangulo['profundidade'])
 
         # Desativa a textura após desenhar o chão
         glDisable(GL_TEXTURE_2D)
