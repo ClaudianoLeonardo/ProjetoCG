@@ -146,10 +146,10 @@ class Game:
 
     def load_textures(self):
         # Carregue suas texturas aqui
-        self.imagem_binaria = Image.open('empty.png').convert('L')
+        self.imagem_binaria = Image.open('dots.png').convert('L')
         pixels = self.imagem_binaria.load()
-        self.textura_chao = pygame.image.load('plank.jpg')
-        self.textura_parede = pygame.image.load('brickwall.jpg')
+        self.textura_chao = pygame.image.load('ground.jpg')
+        self.textura_parede = pygame.image.load('wall.png')
         self.textura_obj = pygame.image.load('stone_bricks.png')
         self.textura_teto = pygame.image.load('plank.jpg')
         glEnable(GL_TEXTURE_2D)
@@ -373,8 +373,7 @@ class Game:
 
             if debug:
                 print(f'Posicao da camera: {self.posicao}\n,  raotação camera: {self.rotacao} , mouse: {self.ultima_posicao_mouse}' )
-
-
+                           
         pygame.quit()
 
 if __name__ == '__main__':
