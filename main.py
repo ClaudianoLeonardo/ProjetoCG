@@ -143,40 +143,33 @@ class Game:
             glVertex3fv(vertices[face[3]])
         glEnd()
 
+    def carregar_textura(self,textura, filtro_min, filtro_mag):
+        glEnable(GL_TEXTURE_2D)
+        textura_id = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, textura_id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filtro_min)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filtro_mag)
+
+        if textura.get_alpha():
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textura.get_width(), textura.get_height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, pygame.image.tostring(textura, 'RGBA'))
+        else:
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textura.get_width(), textura.get_height(), 0, GL_RGB, GL_UNSIGNED_BYTE, pygame.image.tostring(textura, 'RGB'))
+
+        return textura_id
 
     def load_textures(self):
         # Carregue suas texturas aqui
-        self.imagem_binaria = Image.open('maze.png').convert('L')
+        self.imagem_binaria = Image.open('empty.png').convert('L')
         pixels = self.imagem_binaria.load()
         self.textura_chao = pygame.image.load('ground.jpg')
         self.textura_parede = pygame.image.load('wall.png')
         self.textura_obj = pygame.image.load('concrete.jpg')
         self.textura_teto = pygame.image.load('starry-night-sky.jpg')
         glEnable(GL_TEXTURE_2D)
-        self.textura_id = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.textura_id)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.textura_chao.get_width(), self.textura_chao.get_height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, pygame.image.tostring(self.textura_chao, 'RGBA'))
-
-        glEnable(GL_TEXTURE_2D)
-        self.textura_id_parede = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.textura_id_parede)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.textura_parede.get_width(), self.textura_parede.get_height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, pygame.image.tostring(self.textura_parede, 'RGBA'))
-
-        self.textura_id_obj = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.textura_id_obj)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.textura_obj.get_width(), self.textura_obj.get_height(), 0, GL_RGB,GL_UNSIGNED_BYTE, pygame.image.tostring(self.textura_obj, "RGB", 1))
-
-        self.textura_id_teto = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.textura_id_teto)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, self.textura_teto.get_width(), self.textura_teto.get_height(), 0, GL_RGB,GL_UNSIGNED_BYTE, pygame.image.tostring(self.textura_teto, "RGB", 1))
+        self.textura_id = self.carregar_textura(self.textura_chao, GL_LINEAR, GL_LINEAR)
+        self.textura_id_parede = self.carregar_textura(self.textura_parede, GL_LINEAR, GL_LINEAR)
+        self.textura_id_obj = self.carregar_textura(self.textura_obj, GL_NEAREST, GL_NEAREST)
+        self.textura_id_teto = self.carregar_textura(self.textura_teto, GL_NEAREST, GL_NEAREST)
 
         for x in range(self.imagem_binaria.width):
             for z in range(self.imagem_binaria.height):
@@ -211,7 +204,7 @@ class Game:
                 self.rotacao[0] = 90
             elif self.rotacao[0] < -90:
                 self.rotacao[0] = -90
-    
+
         self.ultima_posicao_mouse = posicao_mouse_atual
 
     def colisao(self,pos):
@@ -353,10 +346,11 @@ class Game:
         # Desenho do ambiente
         self.desenhar_paredes()
         self.desenhar_plano(-1, self.textura_id, 16, self.tamanho_cena) #Chao
-        self.desenhar_plano(8,  self.textura_id_teto, 16, self.tamanho_cena*10) #teto
+        glEnable(GL_DEPTH_TEST)
+        self.desenhar_plano(15,  self.textura_id_teto, 16, self.tamanho_cena*10) #teto
 
         for retangulo in self.retangulos:
-         self.desenhar_retangulo_3d(retangulo['posicao'], retangulo['largura'], retangulo['altura'], retangulo['profundidade'])
+            self.desenhar_retangulo_3d(retangulo['posicao'], retangulo['largura'], retangulo['altura'], retangulo['profundidade'])
 
         # Desativa a textura após desenhar o chão
         glDisable(GL_TEXTURE_2D)
@@ -373,7 +367,7 @@ class Game:
 
             if debug:
                 print(f'Posicao da camera: {self.posicao}\n,  raotação camera: {self.rotacao} , mouse: {self.ultima_posicao_mouse}' )
-                           
+
         pygame.quit()
 
 if __name__ == '__main__':
