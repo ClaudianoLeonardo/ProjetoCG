@@ -151,7 +151,7 @@ class Game:
         self.textura_chao = pygame.image.load('ground.jpg')
         self.textura_parede = pygame.image.load('wall.png')
         self.textura_obj = pygame.image.load('concrete.jpg')
-        self.textura_teto = pygame.image.load('plank.jpg')
+        self.textura_teto = pygame.image.load('starry-night-sky.jpg')
         glEnable(GL_TEXTURE_2D)
         self.textura_id = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, self.textura_id)
@@ -353,7 +353,7 @@ class Game:
         # Desenho do ambiente
         self.desenhar_paredes()
         self.desenhar_plano(-1, self.textura_id, 16, self.tamanho_cena) #Chao
-        self.desenhar_plano(6,  self.textura_id_teto, 16, self.tamanho_cena) #teto
+        self.desenhar_plano(8,  self.textura_id_teto, 16, self.tamanho_cena*10) #teto
 
         for retangulo in self.retangulos:
          self.desenhar_retangulo_3d(retangulo['posicao'], retangulo['largura'], retangulo['altura'], retangulo['profundidade'])
