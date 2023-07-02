@@ -15,6 +15,10 @@ Make sure you have the following requirements installed in your development envi
 - Pygame (version 2.0.1 or higher)
 - PyOpenGL (version 3.1.5 or higher)
 
+  ```
+  pip install -r requirements.txt
+  ```
+
 ## Installing PyOpenGL
 
 To install PyOpenGL, you can use pip, the package installer for Python. Open a terminal or command prompt and run the following command:
