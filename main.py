@@ -4,13 +4,16 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from PIL import Image
 import math
-import numpy
+import numpy as np
 
 class Game:
     def __init__(self):
         pygame.init()
         self.largura = 800
         self.altura = 600
+
+        self.clock = pygame.time.Clock()
+        self.fps = 120  # Defina a taxa de quadros por segundo desejada
 
         self.posicao = [-19, 1, -19]  # Posição inicial da câmera
         self.rotacao = [0, 0]  # Rotação inicial da câmera
@@ -55,6 +58,56 @@ class Game:
         pygame.display.set_mode((self.largura, self.largura), DOUBLEBUF | OPENGL)
         self.load_textures()
         self.desenhar_paredes()
+        self.init_rect_vbo()
+
+
+    def init_rect_vbo(self):
+        # Create VBOs for rectangle vertices and indices
+        self.rect_vertex_vbo = glGenBuffers(1)
+        self.rect_index_vbo = glGenBuffers(1)
+
+        # Create and bind the VAO (Vertex Array Object) for rectangles
+        self.rect_vao = glGenVertexArrays(1)
+        glBindVertexArray(self.rect_vao)
+
+        # Bind the vertex VBO and buffer data
+        glBindBuffer(GL_ARRAY_BUFFER, self.rect_vertex_vbo)
+        glBufferData(GL_ARRAY_BUFFER, np.array(self.get_rect_vertices(), dtype=np.float32), GL_STATIC_DRAW)
+
+        # Bind the index VBO and buffer data
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.rect_index_vbo)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, np.array(self.get_rect_indices(), dtype=np.uint32), GL_STATIC_DRAW)
+
+        # Define the vertex attributes
+        glEnableVertexAttribArray(0)
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, None)
+
+        # Unbind VAO
+        glBindVertexArray(0)
+
+    def get_rect_vertices(self):
+        vertices = [
+            (-self.largura_retangulo/2, -self.altura_retangulo/2, -self.profundidade_retangulo/2),
+            (-self.largura_retangulo/2, self.altura_retangulo/2, -self.profundidade_retangulo/2),
+            (self.largura_retangulo/2, self.altura_retangulo/2, -self.profundidade_retangulo/2),
+            (self.largura_retangulo/2, -self.altura_retangulo/2, -self.profundidade_retangulo/2),
+            (-self.largura_retangulo/2, -self.altura_retangulo/2, self.profundidade_retangulo/2),
+            (-self.largura_retangulo/2, self.altura_retangulo/2, self.profundidade_retangulo/2),
+            (self.largura_retangulo/2, self.altura_retangulo/2, self.profundidade_retangulo/2),
+            (self.largura_retangulo/2, -self.altura_retangulo/2, self.profundidade_retangulo/2)
+        ]
+        return vertices
+
+    def get_rect_indices(self):
+        indices = [
+            0, 1, 2, 3,
+            4, 5, 6, 7,
+            0, 1, 5, 4,
+            2, 3, 7, 6,
+            0, 3, 7, 4,
+            1, 2, 6, 5
+        ]
+        return indices
 
 
     def desenhar_paredes(self):
@@ -102,46 +155,71 @@ class Game:
         glEnd()
 
     def desenhar_retangulo_3d(self,posicao, largura, altura, profundidade):
-        vertices = [
-            (posicao[0] - largura/2, posicao[1] - altura/2, posicao[2] - profundidade/2),
-            (posicao[0] - largura/2, posicao[1] + altura/2, posicao[2] - profundidade/2),
-            (posicao[0] + largura/2, posicao[1] + altura/2, posicao[2] - profundidade/2),
-            (posicao[0] + largura/2, posicao[1] - altura/2, posicao[2] - profundidade/2),
-            (posicao[0] - largura/2, posicao[1] - altura/2, posicao[2] + profundidade/2),
-            (posicao[0] - largura/2, posicao[1] + altura/2, posicao[2] + profundidade/2),
-            (posicao[0] + largura/2, posicao[1] + altura/2, posicao[2] + profundidade/2),
-            (posicao[0] + largura/2, posicao[1] - altura/2, posicao[2] + profundidade/2)
-        ]
+        vertices = np.array([
+            # Frente
+            [posicao[0] - largura / 2, posicao[1] - altura / 2, posicao[2] + profundidade / 2],
+            [posicao[0] + largura / 2, posicao[1] - altura / 2, posicao[2] + profundidade / 2],
+            [posicao[0] + largura / 2, posicao[1] + altura / 2, posicao[2] + profundidade / 2],
+            [posicao[0] - largura / 2, posicao[1] + altura / 2, posicao[2] + profundidade / 2],
 
-        faces = [
-            (0, 1, 2, 3),
-            (4, 5, 6, 7),
-            (0, 1, 5, 4),
-            (2, 3, 7, 6),
-            (0, 3, 7, 4),
-            (1, 2, 6, 5)
-        ]
+            # Trás
+            [posicao[0] - largura / 2, posicao[1] - altura / 2, posicao[2] - profundidade / 2],
+            [posicao[0] + largura / 2, posicao[1] - altura / 2, posicao[2] - profundidade / 2],
+            [posicao[0] + largura / 2, posicao[1] + altura / 2, posicao[2] - profundidade / 2],
+            [posicao[0] - largura / 2, posicao[1] + altura / 2, posicao[2] - profundidade / 2],
+        ], dtype=np.float32)
 
-        # Habilitar a aplicação de texturas
-        glEnable(GL_TEXTURE_2D)
-        glEnable(GL_DEPTH_TEST)
+        indices = np.array([
+            # Frente
+            0, 1, 2,
+            2, 3, 0,
 
-        # Desabilitar o descarte de faces
-        glDisable(GL_CULL_FACE)
-        glBindTexture(GL_TEXTURE_2D, self.textura_id_obj)
+            # Topo
+            3, 2, 6,
+            6, 7, 3,
 
-        glBegin(GL_QUADS)
-        glColor3f(1.0, 1.0, 1.0)
-        for i, face in enumerate(faces):
-            glTexCoord2f(0, 0)
-            glVertex3fv(vertices[face[0]])
-            glTexCoord2f(1, 0)
-            glVertex3fv(vertices[face[1]])
-            glTexCoord2f(1, 1)
-            glVertex3fv(vertices[face[2]])
-            glTexCoord2f(0, 1)
-            glVertex3fv(vertices[face[3]])
-        glEnd()
+            # Trás
+            7, 6, 5,
+            5, 4, 7,
+
+            # Base
+            4, 0, 3,
+            3, 7, 4,
+
+            # Lado direito
+            1, 5, 6,
+            6, 2, 1,
+
+            # Lado esquerdo
+            4, 5, 1,
+            1, 0, 4,
+        ], dtype=np.uint32)
+
+        # Criação do VBO para os vértices
+        vbo_vertices = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices)
+        glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+
+        # Criação do VBO para os índices
+        vbo_indices = glGenBuffers(1)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_indices)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL_STATIC_DRAW)
+
+        # Desenhar o retângulo usando VBOs
+        glEnableClientState(GL_VERTEX_ARRAY)
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices)
+        glVertexPointer(3, GL_FLOAT, 0, None)
+
+        glColor3f(1.0, 0.0, 0.0)
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_indices)
+        glDrawElements(GL_TRIANGLES, len(indices), GL_UNSIGNED_INT, None)
+
+        glDisableClientState(GL_VERTEX_ARRAY)
+
+        # Liberação dos VBOs
+        glDeleteBuffers(1, [vbo_vertices, vbo_indices])
+
 
     def carregar_textura(self,textura, filtro_min, filtro_mag):
         glEnable(GL_TEXTURE_2D)
@@ -159,11 +237,11 @@ class Game:
 
     def load_textures(self):
         # Carregue suas texturas aqui
-        self.imagem_binaria = Image.open('empty.png').convert('L')
+        self.imagem_binaria = Image.open('maze.png').convert('L')
         pixels = self.imagem_binaria.load()
         self.textura_chao = pygame.image.load('ground.jpg')
         self.textura_parede = pygame.image.load('wall.png')
-        self.textura_obj = pygame.image.load('concrete.jpg')
+        self.textura_obj = pygame.image.load('white.png')
         self.textura_teto = pygame.image.load('starry-night-sky.jpg')
         glEnable(GL_TEXTURE_2D)
         self.textura_id = self.carregar_textura(self.textura_chao, GL_LINEAR, GL_LINEAR)
@@ -183,9 +261,8 @@ class Game:
                     }
                     self.novos_retangulos.append(novo_retangulo)
 
-
-
         self.retangulos.extend(self.novos_retangulos)
+
 
     def capturar_movimento_mouse(self):
         posicao_mouse_atual = pygame.mouse.get_pos()
@@ -268,33 +345,33 @@ class Game:
 
         # Captura das teclas pressionadas para movimentação do personagem
         teclas = pygame.key.get_pressed()
-        velocidade = 0.05 #0.07
+        velocidade = 0.2 #0.07
         proxima_posicao = self.posicao.copy()
         if self.colisao(proxima_posicao):
             if teclas[pygame.K_w]:
                 proxima_posicao[0] += velocidade * math.sin(self.rotacao[1] * math.pi / 180.0)
                 proxima_posicao[2] -= velocidade * math.cos(self.rotacao[1] * math.pi / 180.0)
                 #Modifica a altura da câmera para simular o movimento de um personagem
-                if proxima_posicao[1] < 1.5 and self.flag:
-                    proxima_posicao[1] += 0.01
+                if proxima_posicao[1] < 1.3 and self.flag:
+                    proxima_posicao[1] += 0.03
 
                 else:
                     self.flag = False
                     if proxima_posicao[1] > 1:
-                        proxima_posicao[1] -= 0.01
+                        proxima_posicao[1] -= 0.03
                     else:
                         self.flag = True
 
             if teclas[pygame.K_s]:
                 proxima_posicao[0] -= velocidade * math.sin(self.rotacao[1] * math.pi / 180.0)
                 proxima_posicao[2] += velocidade * math.cos(self.rotacao[1] * math.pi / 180.0)
-                if proxima_posicao[1] < 1.5 and self.flag:
-                    proxima_posicao[1] += 0.01
+                if proxima_posicao[1] < 1.3 and self.flag:
+                    proxima_posicao[1] += 0.03
 
                 else:
                     self.flag = False
                     if proxima_posicao[1] > 1:
-                        proxima_posicao[1] -= 0.01
+                        proxima_posicao[1] -= 0.03
                     else:
                         self.flag = True
 
@@ -313,13 +390,13 @@ class Game:
 
         # Captura das teclas pressionadas para rotacionar a câmera
         if teclas[pygame.K_LEFT]:
-            self.rotacao[1] -= 1  # Girar para a esquerda
+            self.rotacao[1] -= 3  # Girar para a esquerda
         if teclas[pygame.K_RIGHT]:
-            self.rotacao[1] += 1  # Girar para a direita
+            self.rotacao[1] += 3  # Girar para a direita
         if teclas[pygame.K_UP]:
-            self.rotacao[0] -= 1  # Olhar para cima
+            self.rotacao[0] -= 3  # Olhar para cima
         if teclas[pygame.K_DOWN]:
-            self.rotacao[0] += 1  # Olhar para baixo
+            self.rotacao[0] += 3  # Olhar para baixo
 
         if self.colisao_obj(proxima_posicao, self.camera_width, self.camera_height,self.camera_depth, self.retangulos):
             print("Houve uma colisão!")
@@ -339,34 +416,38 @@ class Game:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(45, (self.largura / self.altura), 0.1, 50.0)
+        gluPerspective(45, (self.largura / self.altura), 0.1, 150.0)
         glMatrixMode(GL_MODELVIEW)
         self.update()
 
+        glEnable(GL_CULL_FACE)
+        for retangulo in self.retangulos:
+            self.desenhar_retangulo_3d(retangulo['posicao'], retangulo['largura'], retangulo['altura'], retangulo['profundidade'])
+
+        glDisable(GL_CULL_FACE)
         # Desenho do ambiente
         self.desenhar_paredes()
         self.desenhar_plano(-1, self.textura_id, 16, self.tamanho_cena) #Chao
         glEnable(GL_DEPTH_TEST)
         self.desenhar_plano(15,  self.textura_id_teto, 16, self.tamanho_cena*10) #teto
 
-        for retangulo in self.retangulos:
-            self.desenhar_retangulo_3d(retangulo['posicao'], retangulo['largura'], retangulo['altura'], retangulo['profundidade'])
 
-        # Desativa a textura após desenhar o chão
+
+
+    # Desativa a textura após desenhar o chão
         glDisable(GL_TEXTURE_2D)
         pygame.display.flip()
-        pygame.time.wait(1)
+        #self.clock.tick(self.fps)
 
     def run(self,debug = False):
         self.setup()
-
         while self.is_running:
             self.handle_events()
             self.update()
             self.render()
 
-            if debug:
-                print(f'Posicao da camera: {self.posicao}\n,  raotação camera: {self.rotacao} , mouse: {self.ultima_posicao_mouse}' )
+           # if debug:
+                #print(f'Posicao da camera: {self.posicao}\n,  raotação camera: {self.rotacao} , mouse: {self.ultima_posicao_mouse}' )
 
         pygame.quit()
 
