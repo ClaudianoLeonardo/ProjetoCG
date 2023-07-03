@@ -16,7 +16,7 @@ class Game:
         self.fps = 120  # Defina a taxa de quadros por segundo desejada
 
         self.posicao = [-19, 1, -19]  # Posição inicial da câmera
-        self.rotacao = [0, 0]  # Rotação inicial da câmera
+        self.rotacao = [0, 90]  # Rotação inicial da câmera
 
         self.cont = 0
         self.flag = True
@@ -154,7 +154,7 @@ class Game:
 
         glEnd()
 
-    def desenhar_retangulo_3d(self,posicao, largura, altura, profundidade):
+    def desenhar_retangulo_3d(self,posicao, largura, altura, profundidade, cor):
         vertices = np.array([
             # Frente
             [posicao[0] - largura / 2, posicao[1] - altura / 2, posicao[2] + profundidade / 2],
@@ -210,7 +210,12 @@ class Game:
         glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices)
         glVertexPointer(3, GL_FLOAT, 0, None)
 
-        glColor3f(1.0, 0.0, 0.0)
+        if(cor == "preto"):
+            glColor3f(0.392, 0.392, 0.392)
+        if(cor == "verde"):
+            glColor3f(0.0, 1.0, 0.0)
+        if(cor == "vermelho"):
+            glColor3f(1.0, 0.0, 0.0)
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_indices)
         glDrawElements(GL_TRIANGLES, len(indices), GL_UNSIGNED_INT, None)
@@ -237,11 +242,11 @@ class Game:
 
     def load_textures(self):
         # Carregue suas texturas aqui
-        self.imagem_binaria = Image.open('maze.png').convert('L')
+        self.imagem_binaria = Image.open('maze_color.png').convert('RGB')
         pixels = self.imagem_binaria.load()
-        self.textura_chao = pygame.image.load('ground.jpg')
-        self.textura_parede = pygame.image.load('wall.png')
-        self.textura_obj = pygame.image.load('white.png')
+        self.textura_chao = pygame.image.load('ground.png')
+        self.textura_parede = pygame.image.load('bricks_3.png')
+        self.textura_obj = pygame.image.load('wall.png')
         self.textura_teto = pygame.image.load('starry-night-sky.jpg')
         glEnable(GL_TEXTURE_2D)
         self.textura_id = self.carregar_textura(self.textura_chao, GL_LINEAR, GL_LINEAR)
@@ -251,15 +256,33 @@ class Game:
 
         for x in range(self.imagem_binaria.width):
             for z in range(self.imagem_binaria.height):
+                r, g, b = pixels[x, z]
                 # Se o pixel é preto (valor 0), adicionamos o retângulo na posição correspondente
-                if pixels[x, z] == 0:
+                if r == 0 and g == 0 and b == 0:
                     novo_retangulo = {
                         'posicao': [x-self.tamanho_cena, 1, z-self.tamanho_cena],
                         'largura': self.largura_retangulo,
                         'altura': self.altura_retangulo,
-                        'profundidade': self.profundidade_retangulo
+                        'profundidade': self.profundidade_retangulo,
+                        'cor': "preto"
                     }
                     self.novos_retangulos.append(novo_retangulo)
+
+                if g > 100 and r < 50 and b < 50: #Quando o pixel for verde, definir objeto de cor verde
+                    novo_retangulo = {
+                        'posicao': [x-self.tamanho_cena, 1, z-self.tamanho_cena],
+                        'largura': self.largura_retangulo,
+                        'altura': self.altura_retangulo - 2,
+                        'profundidade': self.profundidade_retangulo,
+                        'cor': "verde"
+                    }
+
+                    self.novos_retangulos.append(novo_retangulo)
+
+                if r > 100 and g < 50 and b < 50 : #Quando o pixel for vermelho, definir posição inicial da câmera
+                    self.posicao = [x-self.tamanho_cena, 1, z-self.tamanho_cena]
+                    self.novos_retangulos.append(novo_retangulo)
+
 
         self.retangulos.extend(self.novos_retangulos)
 
@@ -422,7 +445,7 @@ class Game:
 
         glEnable(GL_CULL_FACE)
         for retangulo in self.retangulos:
-            self.desenhar_retangulo_3d(retangulo['posicao'], retangulo['largura'], retangulo['altura'], retangulo['profundidade'])
+            self.desenhar_retangulo_3d(retangulo['posicao'], retangulo['largura'], retangulo['altura'], retangulo['profundidade'],retangulo['cor'])
 
         glDisable(GL_CULL_FACE)
         # Desenho do ambiente
@@ -434,10 +457,10 @@ class Game:
 
 
 
-    # Desativa a textura após desenhar o chão
+        # Desativa a textura após desenhar o chão
         glDisable(GL_TEXTURE_2D)
         pygame.display.flip()
-        #self.clock.tick(self.fps)
+        pygame.time.wait(1)
 
     def run(self,debug = False):
         self.setup()
@@ -446,8 +469,8 @@ class Game:
             self.update()
             self.render()
 
-           # if debug:
-                #print(f'Posicao da camera: {self.posicao}\n,  raotação camera: {self.rotacao} , mouse: {self.ultima_posicao_mouse}' )
+        # if debug:
+        #print(f'Posicao da camera: {self.posicao}\n,  raotação camera: {self.rotacao} , mouse: {self.ultima_posicao_mouse}' )
 
         pygame.quit()
 
