@@ -242,7 +242,7 @@ class Game:
 
     def load_textures(self):
         # Carregue suas texturas aqui
-        self.imagem_binaria = Image.open('maze_color.png').convert('RGB')
+        self.imagem_binaria = Image.open('points_test2.png').convert('RGB')
         pixels = self.imagem_binaria.load()
         self.textura_chao = pygame.image.load('ground.png')
         self.textura_parede = pygame.image.load('bricks_3.png')
@@ -279,9 +279,10 @@ class Game:
 
                     self.novos_retangulos.append(novo_retangulo)
 
-                if r > 100 and g < 50 and b < 50 : #Quando o pixel for vermelho, definir posição inicial da câmera
+                if r > 100 and g < 50 and b < 50: #Quando o pixel for vermelho, definir posição inicial da câmera
                     self.posicao = [x-self.tamanho_cena, 1, z-self.tamanho_cena]
-                    self.novos_retangulos.append(novo_retangulo)
+
+
 
 
         self.retangulos.extend(self.novos_retangulos)
